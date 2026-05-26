@@ -12,6 +12,9 @@
 </head>
 <body>
 
+    <audio id="track1" src="asset/music/gamev1.mp3" loop preload="auto"></audio>
+    <audio id="track2" src="asset/music/gamev2.mp3" loop preload="auto"></audio>
+
     <canvas id="gameCanvas"></canvas>
 
     <script>
@@ -25,7 +28,6 @@
         window.addEventListener("resize", resizeCanvas);
         resizeCanvas();
 
-        // ВОЗВРАЩАЕМ РУССКИЕ НАЗВАНИЯ ДЛЯ КАРТИНОК
         const PATHS = {
             background: "asset/world/лес.png",
             up: "asset/sprite/demon/вверх.png",
@@ -44,12 +46,6 @@
         demonSprites.s.src = PATHS.down;
         demonSprites.a.src = PATHS.left;
         demonSprites.d.src = PATHS.right;
-
-        // МУЗЫКА ОСТАЕТСЯ НА ЛАТИНИЦЕ С ВЫБОРОМ 50/50
-        const musicFiles = [
-            "asset/music/gamev1.mp3",
-            "asset/music/gamev2.mp3"
-        ];
         
         let bgMusic = null;
         let isMusicPlaying = false;
@@ -74,20 +70,20 @@
                 keys[dir] = true;
                 player.currentDirection = dir;
 
-                // Музыка включится при первом нажатии кнопки движения
+                // Запускаем музыку при первом нажатии
                 if (!isMusicPlaying) {
                     isMusicPlaying = true;
-                    try {
-                        const randomIndex = Math.floor(Math.random() * musicFiles.length);
-                        bgMusic = new Audio(musicFiles[randomIndex]);
-                        bgMusic.loop = true;
-                        bgMusic.volume = 0.4;
-                        bgMusic.play().catch(err => {
-                            isMusicPlaying = false; // пробуем снова при следующем нажатии
-                        });
-                    } catch (audioErr) {
-                        console.log(audioErr);
-                    }
+                    
+                    // Выбираем случайный трек: "track1" или "track2"
+                    const trackId = Math.random() < 0.5 ? "track1" : "track2";
+                    bgMusic = document.getElementById(trackId);
+                    bgMusic.volume = 0.4;
+                    
+                    bgMusic.play().catch(err => {
+                        // Если выскочит ошибка, она появится на экране!
+                        alert("ОШИБКА МУЗЫКИ:\n" + err.message + "\n\nПроверь, лежат ли файлы в asset/music/ и называются ли они gamev1.mp3");
+                        isMusicPlaying = false; 
+                    });
                 }
             }
         });
@@ -135,6 +131,7 @@
                 const playerHeight = player.targetHeight;
                 ctx.drawImage(activeSprite, player.x, player.y, playerWidth, playerHeight);
             } else {
+                // Если картинка "вниз" не загрузилась, тут будет красный квадрат
                 ctx.fillStyle = "red";
                 ctx.fillRect(player.x, player.y, 64, player.targetHeight);
             }
