@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demon RPG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        // Пути к ресурсам
+        const PATHS = {
+            background: "asset/world/лес.png",
+            up: "asset/sprite/demon/вверх.png",
+            down: "asset/sprite/demon/вниз.png",
+            left: "asset/sprite/demon/лево.png",
+            right: "asset/sprite/demon/право.png"
+        };
+
+        // Загрузка картинок
+        const bgImage = new Image();
+        bgImage.src = PATHS.background;
+
+        const demonSprites = {
+            w: new Image(), s: new Image(), a: new Image(), d: new Image()
+        };
+        demonSprites.w.src = PATHS.up;
+        demonSprites.s.src = PATHS.down;
+        demonSprites.a.src = PATHS.left;
+        demonSprites.d.src = PATHS.right;
+
+        // НАСТРОЙКА СЛУЧАЙНОЙ МУЗЫКИ (50/50)
+        const musicFiles = [
+            "asset/music/gamev1.mp3",
+            "asset/music/gamev2.mp3"
+        ];
+        
+        // Выбираем случайный индекс: 0 или 1
+        const randomIndex = Math.floor(Math.random() * musicFiles.length);
+        const selectedMusicPath = musicFiles[randomIndex];
+        
+        console.log("Система выбрала трек: " + selectedMusicPath); // Выведет в консоль браузера, что играет
+
+        const bgMusic = new Audio(selectedMusicPath);
+        bgMusic.loop = true;  // Зацикливаем намертво
+        bgMusic.volume = 0.4; // Громкость
+        let isMusicPlaying = false;
+
+        const player = {
+            x: 100,
+            y: 100,
+            targetHeight: 100,
+            speed: 5,
+            currentDirection: "s"
+        };
+
+        const keys = {};
+
+        window.addEventListener("keydown", (e) => {
+            const key = e.key.toLowerCase();
+            if (["w", "a", "s", "d", "ц", "ы", "ф", "в"].includes(key)) {
+                let dir = key;
+                if (key === "ц") dir = "w";
+                if (key === "ы") dir = "s";
+                if (key === "ф") dir = "a";
+                if (key === "в") dir = "d";
+
+                keys[dir] = true;
+                player.currentDirection = dir;
+
+                // Запускаем выбранную музыку при первом действии
+                if (!isMusicPlaying) {
+                    bgMusic.play().catch(err => console.log("Браузер требует клика для звука"));
+                    isMusicPlaying = true;
+                }
+            }
+        });
+
+        window.addEventListener("keyup", (e) => {
+            const key = e.key.toLowerCase();
+            let dir = key;
+            if (key === "ц") dir = "w";
+            if (key === "ы") dir = "s";
+            if (key === "ф") dir = "a";
+            if (key === "в") dir = "d";
+            
+            if (keys[dir]) {
+                keys[dir] = false;
+            }
+        });
+
+        function update() {
+            if (keys["w"]) player.y -= player.speed;
+            if (keys["s"]) player.y += player.speed;
+            if (keys["a"]) player.x -= player.speed;
+            if (keys["d"]) player.x += player.speed;
+
+            const activeSprite = demonSprites[player.currentDirection];
+
+            if (activeSprite && activeSprite.complete) {
+                const aspectRatio = activeSprite.width / activeSprite.height;
+                const playerWidth = player.targetHeight * aspectRatio;
+                const playerHeight = player.targetHeight;
+
+                if (player.x < 0) player.x = 0;
+                if (player.y < 0) player.y = 0;
+                if (player.x > canvas.width - playerWidth) player.x = canvas.width - playerWidth;
+                if (player.y > canvas.height - playerHeight) player.y = canvas.height - playerHeight;
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (bgImage.complete) {
+                ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = "#2e5c1e";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            const activeSprite = demonSprites[player.currentDirection];
+
+            if (activeSprite && activeSprite.complete) {
+                const aspectRatio = activeSprite.width / activeSprite.height;
+                const playerWidth = player.targetHeight * aspectRatio;
+                const playerHeight = player.targetHeight;
+
+                ctx.drawImage(activeSprite, player.x, player.y, playerWidth, playerHeight);
+            } else {
+                ctx.fillStyle = "red";
+                ctx.fillRect(player.x, player.y, 64, player.targetHeight);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
