@@ -5,29 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Demon RPG</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-        }
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        /* Наша секретная школьная консоль */
+        #schoolConsole {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            width: calc(100% - 20px);
+            max-height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ff3333;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 10px;
+            overflow-y: auto;
+            border: 1px solid #ff0000;
+            z-index: 9999;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
+    <div id="schoolConsole">Консоль запущена. Ошибок пока нет...</div>
     <canvas id="gameCanvas"></canvas>
 
     <script>
+        // Функция для вывода ошибок на экран
+        function showError(text) {
+            const consoleDiv = document.getElementById("schoolConsole");
+            if (consoleDiv.innerHTML.includes("Ошибок пока нет")) {
+                consoleDiv.innerHTML = "";
+            }
+            consoleDiv.innerHTML += "[ОШИБКА] " + text + "<br>";
+        }
+
+        // Перехватываем системные ошибки браузера
+        window.onerror = function(message, source, lineno, colno, error) {
+            showError(message + " (Линия: " + lineno + ")");
+            return false;
+        };
+
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
@@ -38,18 +59,18 @@
         window.addEventListener("resize", resizeCanvas);
         resizeCanvas();
 
-        // Пути к ресурсам
+        // Пути без папок и на латинице
         const PATHS = {
-            background: "asset/world/лес.png",
-            up: "asset/sprite/demon/вверх.png",
-            down: "asset/sprite/demon/вниз.png",
-            left: "asset/sprite/demon/лево.png",
-            right: "asset/sprite/demon/право.png"
+            background: "les.png",
+            up: "vverh.png",
+            down: "vniz.png",
+            left: "levo.png",
+            right: "pravo.png"
         };
 
-        // Загрузка картинок
         const bgImage = new Image();
         bgImage.src = PATHS.background;
+        bgImage.onerror = () => showError("Не удалось загрузить карту 'les.png'. Проверь имя файла на GitHub!");
 
         const demonSprites = {
             w: new Image(), s: new Image(), a: new Image(), d: new Image()
@@ -59,29 +80,21 @@
         demonSprites.a.src = PATHS.left;
         demonSprites.d.src = PATHS.right;
 
-        // НАСТРОЙКА СЛУЧАЙНОЙ МУЗЫКИ (50/50)
+        // Проверяем загрузку спрайтов
+        Object.keys(demonSprites).forEach(key => {
+            demonSprites[key].onerror = () => showError(`Не удалось загрузить спрайт для кнопки '${key}'. Проверь файлы демона!`);
+        });
+
         const musicFiles = [
-            "asset/music/gamev1.mp3",
-            "asset/music/gamev2.mp3"
+            "gamev1.mp3",
+            "gamev2.mp3"
         ];
         
-        // Выбираем случайный индекс: 0 или 1
-        const randomIndex = Math.floor(Math.random() * musicFiles.length);
-        const selectedMusicPath = musicFiles[randomIndex];
-        
-        console.log("Система выбрала трек: " + selectedMusicPath); // Выведет в консоль браузера, что играет
-
-        const bgMusic = new Audio(selectedMusicPath);
-        bgMusic.loop = true;  // Зацикливаем намертво
-        bgMusic.volume = 0.4; // Громкость
+        let bgMusic = null;
         let isMusicPlaying = false;
 
         const player = {
-            x: 100,
-            y: 100,
-            targetHeight: 100,
-            speed: 5,
-            currentDirection: "s"
+            x: 100, y: 100, targetHeight: 100, speed: 5, currentDirection: "s"
         };
 
         const keys = {};
@@ -98,10 +111,23 @@
                 keys[dir] = true;
                 player.currentDirection = dir;
 
-                // Запускаем выбранную музыку при первом действии
                 if (!isMusicPlaying) {
-                    bgMusic.play().catch(err => console.log("Браузер требует клика для звука"));
                     isMusicPlaying = true;
+                    try {
+                        const randomIndex = Math.floor(Math.random() * musicFiles.length);
+                        bgMusic = new Audio(musicFiles[randomIndex]);
+                        bgMusic.loop = true;
+                        bgMusic.volume = 0.4;
+                        
+                        bgMusic.play().catch(err => {
+                            showError("Музыка заблокирована браузером. Кликни по экрану игры мышкой!");
+                            isMusicPlaying = false;
+                        });
+                        
+                        bgMusic.onerror = () => showError(`Ошибка загрузки музыки: ${musicFiles[randomIndex]}. Проверь mp3 файлы!`);
+                    } catch (e) {
+                        showError("Критическая ошибка аудио: " + e.message);
+                    }
                 }
             }
         });
@@ -113,10 +139,7 @@
             if (key === "ы") dir = "s";
             if (key === "ф") dir = "a";
             if (key === "в") dir = "d";
-            
-            if (keys[dir]) {
-                keys[dir] = false;
-            }
+            if (keys[dir]) keys[dir] = false;
         });
 
         function update() {
@@ -126,7 +149,6 @@
             if (keys["d"]) player.x += player.speed;
 
             const activeSprite = demonSprites[player.currentDirection];
-
             if (activeSprite && activeSprite.complete) {
                 const aspectRatio = activeSprite.width / activeSprite.height;
                 const playerWidth = player.targetHeight * aspectRatio;
@@ -150,12 +172,10 @@
             }
 
             const activeSprite = demonSprites[player.currentDirection];
-
             if (activeSprite && activeSprite.complete) {
                 const aspectRatio = activeSprite.width / activeSprite.height;
                 const playerWidth = player.targetHeight * aspectRatio;
                 const playerHeight = player.targetHeight;
-
                 ctx.drawImage(activeSprite, player.x, player.y, playerWidth, playerHeight);
             } else {
                 ctx.fillStyle = "red";
