@@ -12,9 +12,6 @@
 </head>
 <body>
 
-    <audio id="track1" src="asset/music/gamev1.mp3" loop preload="auto"></audio>
-    <audio id="track2" src="asset/music/gamev2.mp3" loop preload="auto"></audio>
-
     <canvas id="gameCanvas"></canvas>
 
     <script>
@@ -46,9 +43,32 @@
         demonSprites.s.src = PATHS.down;
         demonSprites.a.src = PATHS.left;
         demonSprites.d.src = PATHS.right;
-        
-        let bgMusic = null;
+
+        // НАСТРОЙКА СЛУЧАЙНОЙ МУЗЫКИ (50/50)
+        const musicFiles = [
+            "asset/music/game1v.mp3",
+            "asset/music/game2v.mp3"
+        ];
+        const randomIndex = Math.floor(Math.random() * musicFiles.length);
+        const selectedMusicPath = musicFiles[randomIndex];
+        console.log("Система выбрала трек: " + selectedMusicPath);
+
+        const bgMusic = new Audio(selectedMusicPath);
+        bgMusic.loop = true;
+        bgMusic.volume = 0.4;
         let isMusicPlaying = false;
+
+        function startBgMusic() {
+            if (isMusicPlaying) return;
+            bgMusic.play().then(() => {
+                isMusicPlaying = true;
+            }).catch(err => {
+                console.log("Звук не запустился:", err);
+            });
+        }
+
+        window.addEventListener("mousedown", startBgMusic, { once: true });
+        window.addEventListener("touchstart", startBgMusic, { once: true });
 
         const player = {
             x: 100, y: 100, targetHeight: 100, speed: 5, currentDirection: "s"
@@ -69,22 +89,7 @@
             if (dir) {
                 keys[dir] = true;
                 player.currentDirection = dir;
-
-                // Запускаем музыку при первом нажатии
-                if (!isMusicPlaying) {
-                    isMusicPlaying = true;
-                    
-                    // Выбираем случайный трек: "track1" или "track2"
-                    const trackId = Math.random() < 0.5 ? "track1" : "track2";
-                    bgMusic = document.getElementById(trackId);
-                    bgMusic.volume = 0.4;
-                    
-                    bgMusic.play().catch(err => {
-                        // Если выскочит ошибка, она появится на экране!
-                        alert("ОШИБКА МУЗЫКИ:\n" + err.message + "\n\nПроверь, лежат ли файлы в asset/music/ и называются ли они gamev1.mp3");
-                        isMusicPlaying = false; 
-                    });
-                }
+                startBgMusic();
             }
         });
 
