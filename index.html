@@ -53,17 +53,28 @@
         const selectedMusicPath = musicFiles[randomIndex];
         console.log("Система выбрала трек: " + selectedMusicPath);
 
-        const bgMusic = new Audio(selectedMusicPath);
+        const bgMusic = new Audio();
+        bgMusic.src = selectedMusicPath;
         bgMusic.loop = true;
         bgMusic.volume = 0.4;
+        bgMusic.preload = "auto";
         let isMusicPlaying = false;
+
+        console.log("Audio source:", selectedMusicPath);
+        console.log("MP3 support:", bgMusic.canPlayType("audio/mpeg"));
+
+        bgMusic.addEventListener("error", () => {
+            console.error("Audio load error", selectedMusicPath, bgMusic.error);
+        });
 
         function startBgMusic() {
             if (isMusicPlaying) return;
+            bgMusic.load();
             bgMusic.play().then(() => {
                 isMusicPlaying = true;
             }).catch(err => {
                 console.log("Звук не запустился:", err);
+                alert("Ошибка воспроизведения музыки:\n" + err.message + "\nПроверь путь и поддержку MP3 в браузере.");
             });
         }
 
